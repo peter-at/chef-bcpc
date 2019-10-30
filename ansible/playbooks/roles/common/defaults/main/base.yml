@@ -210,7 +210,12 @@ virtualbox:
 # host aggregates
 ###############################################################################
 
-host_aggregates: []
+host_aggregates:
+  - name: nova
+    args:
+      - --property network=ext1
+    hosts:
+      - r1n2
 
 ###############################################################################
 # networking
