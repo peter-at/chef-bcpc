@@ -1,3 +1,6 @@
 - import_tasks: chef-server.yml
   become: true
   tags: [never,chef-server]
+
+- import_tasks: backup-chef-server.yml
+  tags: [never,backup-chef-server]

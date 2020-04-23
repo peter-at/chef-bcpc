@@ -1,0 +1,66 @@
+
+- include: "{{ playbook_dir }}/roles/common/tasks/configure-backup.yml" 
+
+- name: create backup working directory
+  file:
+    path: "{{ backup_working_dir }}"
+    state: directory
+    recurse: true
+
+- name: backup chef server
+  shell: |
+    # based on stable7.x backup logic, should consider
+    # moving to chef-server-ctl backup from the updated
+    # docs -> https://docs.chef.io/server_backup_restore.html
+    function error {
+      echo "ERROR: $1" >&2
+      log "$1"
+      echo "Terminating abnormally." >&2
+      log "Terminating abnormally."
+      exit 1
+    }
+    
+    function warn {
+      echo "WARNING: $1" >&2
+      log "$1"
+    }
+
+    function log {
+      logger -t BCCBackup "$1"
+    }
+
+    function check_for_bin {
+      if ! which $1 >/dev/null; then
+        error "$1 not found on path."
+      fi
+    }
+
+    CHEF_PG_DUMPALL=/opt/opscode/embedded/bin/pg_dumpall
+    check_for_bin ${CHEF_PG_DUMPALL}
+
+    CHEF_BACKUP="chef-backup-{{ backup_tstamp }}.tgz"
+
+    log "Backing up chef (${CHEF_BACKUP})"
+    _PG_BACKUP=./chef-pgsql.sql.bz2
+    _PGETC_BACKUP=./etc-opscode.tar.bz2
+    _PGVAR_BACKUP=./var-opt-opscode.tar.bz2
+    _CHEFETC_BACKUP=./etc-chef.tar.bz2
+
+    sudo -E -u opscode-pgsql \
+      ${CHEF_PG_DUMPALL} -c 2>/dev/null | bzip2 > ${_PG_BACKUP}
+    sync
+    tar cjf ${_PGETC_BACKUP} /etc/opscode 2>/dev/null
+    tar cjf ${_PGVAR_BACKUP} /var/opt/opscode 2>/dev/null
+    tar cjf ${_CHEFETC_BACKUP} /etc/chef 2>/dev/null
+
+    tar czf ${CHEF_BACKUP} \
+      ${_PG_BACKUP} ${_PGETC_BACKUP} ${_PGVAR_BACKUP} ${_CHEFETC_BACKUP}
+    log "Backed up chef..."
+
+  args:
+    chdir: "{{ backup_working_dir }}"
+    executable: /bin/bash
+  register: result
+  failed_when:
+    - result.rc != 0
+

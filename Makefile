@@ -24,6 +24,18 @@ all : \
 	enable-compute-service \
 	configure-host-aggregates
 
+backup : \
+	backup-chef 
+
+backup-chef :
+
+	ansible-playbook -v \
+		-i ${inventory} ${playbooks}/site.yml \
+		-t backup-chef-server --limit bootstraps
+
+backup-openstack :
+
+
 create: create-virtual-network create-virtual-hosts
 
 destroy: destroy-virtual-hosts destroy-virtual-network

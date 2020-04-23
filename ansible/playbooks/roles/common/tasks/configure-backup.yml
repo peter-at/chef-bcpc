@@ -1,0 +1,11 @@
+- name: timestamp for backup working directory
+  shell: "date +%Y%m%dT%H%M%S"
+  register: tstamp
+
+- name: set backup time stamp
+  set_fact:
+    backup_tstamp: "{{ tstamp.stdout | trim }}"
+
+- name: set backup working directory
+  set_fact:
+    backup_working_dir: "{{ backup_staging_dir }}/{{ backup_tstamp }}"
